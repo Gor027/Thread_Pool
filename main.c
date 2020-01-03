@@ -5,7 +5,7 @@
 #include "threadpool.h"
 #include "test/minunit.h"
 
-void runnable_function(void *arg, size_t argsz) {
+void runnable_function(void *arg __attribute__ ((unused)), size_t argsz __attribute__ ((unused))) {
     long sum = 0;
 
     for (int i = 0; i < 1000000000; ++i) {

@@ -19,6 +19,7 @@ typedef struct my_job {
 static int *row_sum = NULL;
 static int count = 0;
 static pthread_mutex_t guard;
+static pthread_cond_t cond;
 
 void runnable_function(void *arg, size_t argsz __attribute__((unused))) {
     my_job *job = (my_job *) arg;
@@ -29,11 +30,13 @@ void runnable_function(void *arg, size_t argsz __attribute__((unused))) {
     pthread_mutex_lock(&guard);
     row_sum[job->row] += job->val;
     count++;
+    pthread_cond_signal(&cond);
     pthread_mutex_unlock(&guard);
 }
 
 int main() {
     pthread_mutex_init(&guard, 0);
+    pthread_cond_init(&cond, 0);
 
     int rows, columns;
     scanf("%d", &rows);
@@ -70,9 +73,11 @@ int main() {
         defer(&pool, *new_runnable);
     }
 
+    pthread_mutex_lock(&guard);
     while (count != rows * columns) {
-        usleep(1000);
+        pthread_cond_wait(&cond, &guard);
     }
+    pthread_mutex_unlock(&guard);
 
     thread_pool_destroy(&pool);
 

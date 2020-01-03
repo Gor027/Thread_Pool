@@ -1,21 +1,22 @@
 #include <stdlib.h>
+#include <unistd.h>
 #include "threadpool.h"
 #include "future.h"
 
 #define NO_THREADS 3
 
 typedef struct myJob {
-    size_t start;
-    size_t number;
+    long long start;
+    long long number;
     thread_pool_t *pool;
 } myJob;
 
 void *inside_callable(void *arg, size_t argsz __attribute__ ((unused)), size_t *resultSz __attribute__ ((unused))) {
     myJob *job = arg;
-    size_t *n = malloc(sizeof(size_t));
+    long long *n = malloc(sizeof(long long));
     *n = job->start;
 
-    for (size_t i = job->start + NO_THREADS; i <= job->number; i += NO_THREADS) {
+    for (long long i = job->start + NO_THREADS; i <= job->number; i += NO_THREADS) {
         *n *= i;
     }
 
@@ -24,7 +25,7 @@ void *inside_callable(void *arg, size_t argsz __attribute__ ((unused)), size_t *
 
 void *start_callable(void *arg, size_t argsz __attribute__ ((unused)), size_t *resultSz __attribute__ ((unused))) {
     myJob **jobs = arg;
-    size_t **results = malloc(NO_THREADS * sizeof(size_t *));
+    long long **results = malloc(NO_THREADS * sizeof(long long *));
     future_t *futures[NO_THREADS];
 
     for (size_t i = 0; i < NO_THREADS; i++) {
@@ -34,11 +35,11 @@ void *start_callable(void *arg, size_t argsz __attribute__ ((unused)), size_t *r
         futures[i] = new_future;
     }
 
-    for (int j = 0; j < NO_THREADS; ++j) {
-        results[j] = (size_t *) await(futures[j]);
+    for (size_t j = 0; j < NO_THREADS; ++j) {
+        results[j] = (long long *) await(futures[j]);
     }
 
-    for (int i = 0; i < NO_THREADS; ++i) {
+    for (size_t i = 0; i < NO_THREADS; ++i) {
         free(futures[i]);
     }
 
@@ -46,15 +47,15 @@ void *start_callable(void *arg, size_t argsz __attribute__ ((unused)), size_t *r
 }
 
 void *result_callable(void *arg, size_t argsz __attribute__ ((unused)), size_t *resultSz __attribute__ ((unused))) {
-    size_t **results = arg;
-    size_t *ans = malloc(sizeof(size_t));
+    long long **results = arg;
+    long long *ans = malloc(sizeof(long long));
 
     *ans = 1;
-    for (int i = 0; i < NO_THREADS; ++i) {
+    for (size_t i = 0; i < NO_THREADS; ++i) {
         *ans *= *results[i];
     }
 
-    for (int i = 0; i < NO_THREADS; ++i) {
+    for (size_t i = 0; i < NO_THREADS; ++i) {
         free(results[i]);
     }
 
@@ -68,9 +69,9 @@ int main() {
     thread_pool_t pool;
     thread_pool_init(&pool, NO_THREADS);
 
-    size_t n;
+    long long n;
 
-    while (scanf("%zd", &n) != EOF) {
+    while (scanf("%lld", &n) != EOF) {
         if (n == 0 || n == 1) {
             printf("1\n");
             continue;
@@ -84,7 +85,7 @@ int main() {
         myJob *jobs[NO_THREADS];
         future_t new_future;
 
-        for (size_t i = 1; i <= NO_THREADS; i++) {
+        for (long long i = 1; i <= NO_THREADS; i++) {
             myJob *new_job = malloc(sizeof(myJob));
             new_job->start = i;
             new_job->number = n;
@@ -100,12 +101,12 @@ int main() {
 
         map(&pool, &result_future, &new_future, result_callable);
 
-        size_t *ans = await(&result_future);
+        long long *ans = await(&result_future);
 
-        printf("%zd\n", *ans);
+        printf("%lld\n", *ans);
 
         free(ans);
-        for (int i = 0; i < NO_THREADS; ++i) {
+        for (size_t i = 0; i < NO_THREADS; ++i) {
             free(jobs[i]);
         }
     }

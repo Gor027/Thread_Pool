@@ -48,6 +48,8 @@ void map_runnable(void *arg, size_t argsz __attribute__ ((unused))) {
     void *result = func(futResult, futResultSz, &resultSz);
     future_set(wrapper->new_future, result, resultSz);
 
+    /* Destroys the mutex and condition in the future but not the result of it. */
+    future_destroy(fut);
     free(wrapper->runnable);
     free(wrapper);
 }

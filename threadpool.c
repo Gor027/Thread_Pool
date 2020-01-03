@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
-
-static volatile size_t keepAlive;
+#include <signal.h>
+#include "vector.h"
 
 /* ========================== FUNCTION PROTOTYPES ============================ */
 static void bsem_init(bsem *bsem_p, size_t v);
@@ -31,10 +31,42 @@ static void jobqueue_push(jobqueue *jobqueue_p, job *job_p);
 static job *jobqueue_pull(jobqueue *jobqueue_p);
 
 static void jobqueue_destroy(jobqueue *jobqueue_p);
+
 /* =========================================================================== */
 
+static volatile size_t keepAlive;
+static vector v;
+
+static __attribute__ ((constructor)) void vec_initializer() {
+    vector_init(&v);
+}
+
+static __attribute__ ((destructor)) void vec_destroyer() {
+    vector_free(&v);
+}
 
 /* ========================== THREADPOOL ============================ */
+/**
+ * Destroys all pools.
+ */
+static void handler() {
+    /* TODO */
+}
+
+/**
+ * Function for handling SIGINT behaviour.
+ */
+static void set_sig_handler(void) {
+    struct sigaction action = {0};
+
+    action.sa_flags = SA_SIGINFO;
+    action.sa_sigaction = handler;
+
+    if (sigaction(SIGINT, &action, NULL) == -1) {
+        err("set_sig_handler(): SIGINT signal handling failed.\n");
+    }
+}
+
 
 int thread_pool_init(thread_pool_t *pool, size_t num_threads) {
     if (pool == NULL) {
@@ -83,6 +115,8 @@ int thread_pool_init(thread_pool_t *pool, size_t num_threads) {
         return -1;
     }
 
+    set_sig_handler();
+
     for (size_t i = 0; i < num_threads; ++i) {
         thread_init(pool, &pool->threads[i]);
     }
@@ -91,6 +125,7 @@ int thread_pool_init(thread_pool_t *pool, size_t num_threads) {
     while (pool->num_threads_alive != num_threads) {
         usleep(100 * 1000);
     }
+
 
     return 0;
 }
@@ -186,15 +221,26 @@ static void thread_destroy(thread *thread_p) {
     free(thread_p);
 }
 
+/**
+ * Function blocks SIGINT signal for the current thread.
+ */
+static void mask_sig(void) {
+    sigset_t mask;
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGINT);
+
+    pthread_sigmask(SIG_BLOCK, &mask, NULL);
+}
+
 static void *thread_do(thread *thread_p) {
+    /* SIGINT should be blocked for thread_pool threads. */
+    mask_sig();
+
     thread_pool_t *pool = thread_p->thread_pool_p;
 
     pthread_mutex_lock(&pool->thcount_lock);
     pool->num_threads_alive += 1;
     pthread_mutex_unlock(&pool->thcount_lock);
-
-    /* TODO */
-    /* SIGNAL HANDLING... */
 
     /* keepAlive will be set to 0 while destroying the thread pool of the thread */
     while (keepAlive || pool->jobqueue->len != 0) {
