@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include <unistd.h>
 #include "threadpool.h"
 #include "future.h"
 
@@ -71,6 +70,7 @@ int main() {
 
     long long n;
 
+    /* Case 0, 1 and 2 are hard coded as base cases. */
     while (scanf("%lld", &n) != EOF) {
         if (n == 0 || n == 1) {
             printf("1\n");

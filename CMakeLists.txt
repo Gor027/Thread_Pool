@@ -24,4 +24,6 @@ add_subdirectory(test)
 target_link_libraries(asyncc vector)
 add_library(vector vector.c)
 
+add_executable(main main.c)
+
 install(TARGETS asyncc DESTINATION .)

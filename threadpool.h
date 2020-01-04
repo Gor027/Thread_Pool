@@ -45,6 +45,7 @@ typedef struct thread {
 
 typedef struct thread_pool {
     int id;
+    size_t keepAlive;
     thread **threads;              /*Pointer to the threads in thread pool*/
     volatile size_t num_threads_alive;
     volatile size_t num_threads_working;

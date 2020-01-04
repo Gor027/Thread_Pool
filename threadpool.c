@@ -34,15 +34,18 @@ static void jobqueue_destroy(jobqueue *jobqueue_p);
 
 /* =========================================================================== */
 
-static volatile size_t keepAlive;
 static vector vec;
+/* Mutex for guarding simultaneous access to vector */
+static pthread_mutex_t vecGuard;
 
 static __attribute__ ((constructor)) void vec_initializer() {
     vector_init(&vec);
+    pthread_mutex_init(&vecGuard, 0);
 }
 
 static __attribute__ ((destructor)) void vec_destroyer() {
     vector_free(&vec);
+    pthread_mutex_destroy(&vecGuard);
 }
 
 /* ========================== THREADPOOL ============================ */
@@ -79,8 +82,7 @@ int thread_pool_init(thread_pool_t *pool, size_t num_threads) {
         return -1;
     }
 
-    keepAlive = 1;
-
+    pool->keepAlive = 1;
     pool->num_threads_alive = 0;
     pool->num_threads_working = 0;
 
@@ -131,7 +133,10 @@ int thread_pool_init(thread_pool_t *pool, size_t num_threads) {
         usleep(100 * 1000);
     }
 
+    pthread_mutex_lock(&vecGuard);
     int id = vector_add(&vec, pool);
+    pthread_mutex_unlock(&vecGuard);
+
     /* Id is the index of the pool in the vector of the pools. */
     pool->id = id;
 
@@ -140,15 +145,13 @@ int thread_pool_init(thread_pool_t *pool, size_t num_threads) {
 
 void thread_pool_destroy(thread_pool_t *pool) {
     /* Return if thread pool is NULL */
-    if (pool == NULL) {
-        err("thread_pool_destroy(): destroy is called on null pointer.\n");
+    if (pool == NULL)
         return;
-    }
 
     volatile size_t totalThreads = pool->num_threads_alive;
 
     /* Each threads infinite loop should be ended */
-    keepAlive = 0;
+    pool->keepAlive = 0;
 
     /* Kill threads */
     while (pool->num_threads_alive) {
@@ -171,7 +174,9 @@ void thread_pool_destroy(thread_pool_t *pool) {
     free(pool->threads);
     free(pool->jobqueue);
 
+    pthread_mutex_lock(&vecGuard);
     vector_delete(&vec, pool->id);
+    pthread_mutex_unlock(&vecGuard);
 }
 
 int defer(thread_pool_t *pool, runnable_t runnable) {
@@ -180,7 +185,7 @@ int defer(thread_pool_t *pool, runnable_t runnable) {
         return -1;
     }
 
-    if (keepAlive == 0) {
+    if (pool->keepAlive == 0) {
         err("defer(): After thread_pool_destroy defer is called.\n");
         return -1;
     }
@@ -219,7 +224,7 @@ static int thread_init(thread_pool_t *pool, thread **thread_p) {
 
     /* Threads in the thread pool are disconnected and
      * it should not be possible to wait until they end.
-     * In short, threads are UnJoinable.
+     * In short, threads are not "joinable".
      */
     pthread_detach((*thread_p)->pthread);
 
@@ -253,10 +258,10 @@ static void *thread_do(thread *thread_p) {
     pthread_mutex_unlock(&pool->thcount_lock);
 
     /* keepAlive will be set to 0 while destroying the thread pool of the thread */
-    while (keepAlive || pool->jobqueue->len != 0) {
+    while (pool->keepAlive || pool->jobqueue->len != 0) {
         bsem_wait(pool->jobqueue->has_jobs);
 
-        if (keepAlive || pool->jobqueue->len != 0) {
+        if (pool->keepAlive || pool->jobqueue->len != 0) {
             pthread_mutex_lock(&pool->thcount_lock);
             pool->num_threads_working += 1;
             pthread_mutex_unlock(&pool->thcount_lock);
@@ -291,7 +296,7 @@ static void *thread_do(thread *thread_p) {
     pool->num_threads_alive -= 1;
     pthread_mutex_unlock(&pool->thcount_lock);
 
-    /* NULL on SUCCESS */
+    /* NULL on SUCCESS, thread function should be of type (void *) */
     return NULL;
 }
 

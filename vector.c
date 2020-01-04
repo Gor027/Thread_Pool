@@ -43,16 +43,6 @@ void vector_delete(vector *v, int index) {
         return;
 
     v->items[index] = NULL;
-
-    for (int i = index; i < v->total - 1; i++) {
-        v->items[i] = v->items[i + 1];
-        v->items[i + 1] = NULL;
-    }
-
-    v->total--;
-
-    if (v->total > 0 && v->total == v->capacity / 4)
-        vector_resize(v, v->capacity / 2);
 }
 
 void vector_free(vector *v) {
