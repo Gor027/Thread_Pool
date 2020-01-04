@@ -35,19 +35,15 @@ static void jobqueue_destroy(jobqueue *jobqueue_p);
 /* =========================================================================== */
 
 static vector vec;
-/* Mutex for guarding simultaneous access to vector */
-static pthread_mutex_t vecGuard;
 
 /* When library is loaded, function is run, typically during program startup */
 static __attribute__ ((constructor)) void vec_initializer() {
     vector_init(&vec);
-    pthread_mutex_init(&vecGuard, 0);
 }
 
 /* When library is unloaded, destructor is run, typically at program exit */
 static __attribute__ ((destructor)) void vec_destroyer() {
     vector_free(&vec);
-    pthread_mutex_destroy(&vecGuard);
 }
 
 /* ========================== THREADPOOL ============================ */
@@ -142,9 +138,7 @@ int thread_pool_init(thread_pool_t *pool, size_t num_threads) {
         usleep(100 * 1000);
     }
 
-    pthread_mutex_lock(&vecGuard);
     int id = vector_add(&vec, pool);
-    pthread_mutex_unlock(&vecGuard);
 
     /* Id is the index of the pool in the vector of the pools. */
     pool->id = id;
@@ -188,9 +182,7 @@ void thread_pool_destroy(thread_pool_t *pool) {
     free(pool->threads);
     free(pool->jobqueue);
 
-    pthread_mutex_lock(&vecGuard);
     vector_delete(&vec, pool->id);
-    pthread_mutex_unlock(&vecGuard);
 }
 
 /**
