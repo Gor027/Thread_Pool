@@ -35,14 +35,14 @@ static void jobqueue_destroy(jobqueue *jobqueue_p);
 /* =========================================================================== */
 
 static volatile size_t keepAlive;
-static vector v;
+static vector vec;
 
 static __attribute__ ((constructor)) void vec_initializer() {
-    vector_init(&v);
+    vector_init(&vec);
 }
 
 static __attribute__ ((destructor)) void vec_destroyer() {
-    vector_free(&v);
+    vector_free(&vec);
 }
 
 /* ========================== THREADPOOL ============================ */
@@ -50,7 +50,12 @@ static __attribute__ ((destructor)) void vec_destroyer() {
  * Destroys all pools.
  */
 static void handler() {
-    /* TODO */
+    printf("\nSignal is being handled...\n");
+    int poolCount = vector_total(&vec);
+
+    for (int i = 0; i < poolCount; ++i) {
+        thread_pool_destroy(vector_get(&vec, i));
+    }
 }
 
 /**
@@ -126,6 +131,9 @@ int thread_pool_init(thread_pool_t *pool, size_t num_threads) {
         usleep(100 * 1000);
     }
 
+    int id = vector_add(&vec, pool);
+    /* Id is the index of the pool in the vector of the pools. */
+    pool->id = id;
 
     return 0;
 }
@@ -162,6 +170,8 @@ void thread_pool_destroy(thread_pool_t *pool) {
 
     free(pool->threads);
     free(pool->jobqueue);
+
+    vector_delete(&vec, pool->id);
 }
 
 int defer(thread_pool_t *pool, runnable_t runnable) {
