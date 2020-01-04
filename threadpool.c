@@ -38,11 +38,13 @@ static vector vec;
 /* Mutex for guarding simultaneous access to vector */
 static pthread_mutex_t vecGuard;
 
+/* When library is loaded, function is run, typically during program startup */
 static __attribute__ ((constructor)) void vec_initializer() {
     vector_init(&vec);
     pthread_mutex_init(&vecGuard, 0);
 }
 
+/* When library is unloaded, destructor is run, typically at program exit */
 static __attribute__ ((destructor)) void vec_destroyer() {
     vector_free(&vec);
     pthread_mutex_destroy(&vecGuard);
@@ -75,7 +77,14 @@ static void set_sig_handler(void) {
     }
 }
 
-
+/**
+ * Initializes thread_pool with exact amount of threads.
+ * Adds thread_pool pointer in the vector 'vec' to be deleted if
+ * signal SIGINT is caught.
+ * @param pool        - pointer on thread_pool
+ * @param num_threads - number of the threads in the thread_pool
+ * @return 0 on success, otherwise -1 if some failures happened.
+ */
 int thread_pool_init(thread_pool_t *pool, size_t num_threads) {
     if (pool == NULL) {
         err("thread_pool_init(): thread_pool is a null pointer.\n");
@@ -143,6 +152,11 @@ int thread_pool_init(thread_pool_t *pool, size_t num_threads) {
     return 0;
 }
 
+/**
+ * Destroys thread_pool passed with argument 'pool'.
+ * Removes thread_pool pointer from vector 'vec'.
+ * @param pool - pointer on the thread_pool to be destroyed.
+ */
 void thread_pool_destroy(thread_pool_t *pool) {
     /* Return if thread pool is NULL */
     if (pool == NULL)
@@ -156,7 +170,7 @@ void thread_pool_destroy(thread_pool_t *pool) {
     /* Kill threads */
     while (pool->num_threads_alive) {
         bsem_notifyAll(pool->jobqueue->has_jobs);
-        /* Sleep on second to let threads to end then continue */
+        /* Notify all threads to finish submitted tasks and end */
         usleep(100 * 1000);
     }
 
@@ -179,6 +193,13 @@ void thread_pool_destroy(thread_pool_t *pool) {
     pthread_mutex_unlock(&vecGuard);
 }
 
+/**
+ * Submits new task/runnable to thread_pool's jobqueue.
+ * Non-blocking function, so submitted task may not be immediately completed.
+ * @param pool - pointer on the thread_pool
+ * @param runnable - runnable task to be completed by thread_pool threads
+ * @return 0 on success, others -1 if some failures happened.
+ */
 int defer(thread_pool_t *pool, runnable_t runnable) {
     if (pool == NULL) {
         err("defer(): defer is called on null pointer.\n");

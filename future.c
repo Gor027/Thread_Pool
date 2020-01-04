@@ -95,6 +95,14 @@ runnable_t *callable_to_runnable(wrap_t *wrapper) {
     return new_runnable;
 }
 
+/**
+ * Submits new task/callable to thread_pool jobqueue.
+ * Result is an initialised future with the result and result size.
+ * @param pool - pointer on the thread_pool
+ * @param future - pointer on the future which carries the result of the callable task.
+ * @param callable - callable task to be submitted to thread_pool.
+ * @return 0 on success, otherwise -1 if some failures happened.
+ */
 int async(thread_pool_t *pool, future_t *future, callable_t callable) {
     if (future_init(future) == -1) {
         err("async(): future_init() failed as future is NULL.\n");
@@ -131,6 +139,16 @@ int async(thread_pool_t *pool, future_t *future, callable_t callable) {
     return 0;
 }
 
+/**
+ * Function uses 'from' future and 'function' to map a new future.
+ * Multiple maps on the same future is an undefined behaviour, as
+ * after mapping future 'from' is destroyed.
+ * @param pool     - pointer on thread_pool
+ * @param future   - pointer on future to be mapped
+ * @param from     - pointer on base future to map another future
+ * @param function - function pointer to map the new future
+ * @return 0 on success, otherwise -1 if some failures happened.
+ */
 int map(thread_pool_t *pool, future_t *future, future_t *from,
         void *(*function)(void *, size_t, size_t *)) {
 
@@ -172,6 +190,13 @@ int map(thread_pool_t *pool, future_t *future, future_t *from,
     return 0;
 }
 
+/**
+ * Blocking function. Calling thread waits until future result
+ * will be ready to take. After await, future is destroyed, so
+ * multiple awaits on the same future is undefined behaviour.
+ * @param future - pointer to the future
+ * @return pointer to the result of future, which may also be NULL.
+ */
 void *await(future_t *future) {
     void *res = future_get(future);
     future_destroy(future);

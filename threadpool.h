@@ -26,27 +26,27 @@ typedef struct bin_sem {
 } bsem;
 
 typedef struct job {
-    struct job *prev; /*Pointer to the previous job*/
+    struct job *prev; /* Pointer to the previous job */
     runnable_t job;
 } job;
 
 typedef struct jobqueue {
-    pthread_mutex_t r_w_mutex; /*Mutex for read/write on queue*/
-    job *front;                /*Pointer to the front job in the queue*/
-    job *rear;                 /*Pointer to the rear job in the queue*/
+    pthread_mutex_t r_w_mutex; /* Mutex for read/write on queue */
+    job *front;                /* Pointer to the front job in the queue */
+    job *rear;                 /* Pointer to the rear job in the queue */
     bsem *has_jobs;
-    size_t len;                /*Number of the jobs in the queue*/
+    size_t len;                /* Number of the jobs in the queue */
 } jobqueue;
 
 typedef struct thread {
-    pthread_t pthread;                 /*Pointer to the actual thread*/
-    struct thread_pool *thread_pool_p; /*Ensures access to the thread pool*/
+    pthread_t pthread;                 /* Pointer to the actual thread */
+    struct thread_pool *thread_pool_p; /* Ensures access to the thread pool */
 } thread;
 
 typedef struct thread_pool {
     int id;
     size_t keepAlive;
-    thread **threads;              /*Pointer to the threads in thread pool*/
+    thread **threads;              /* Pointer to the threads in thread pool */
     volatile size_t num_threads_alive;
     volatile size_t num_threads_working;
     jobqueue *jobqueue;
