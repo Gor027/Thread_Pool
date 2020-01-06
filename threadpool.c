@@ -299,7 +299,7 @@ static void *thread_do(thread *thread_p) {
             pool->num_threads_working -= 1;
 
             if (!pool->num_threads_working)
-                pthread_cond_signal(&pool->threads_idle);
+                pthread_cond_broadcast(&pool->threads_idle);
 
             pthread_mutex_unlock(&pool->thcount_lock);
         }

@@ -128,6 +128,7 @@ static char *test_map_simple3() {
     free(m);
 
     thread_pool_destroy(&pool);
+
     return 0;
 }
 
