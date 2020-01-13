@@ -96,4 +96,4 @@ The worker threads will start their work after there is a new work on the thread
 * In the end, destroys the working threadpools. (Note that it may not end the program after handling SIGINT...)
 
 
-###For fast practical overview a table showing all functions with their descriptions will be added...###
+### For fast practical overview a table showing all functions with their descriptions will be added... ###
