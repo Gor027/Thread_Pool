@@ -1,4 +1,4 @@
-# Thread_Pool_In_C #
+# Thread_Pool_AND_Future_In_C #
 Implementation of Thread_Pool, Runnable and CompletableFuture in C.
 
 ### Note ###
