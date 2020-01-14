@@ -9,7 +9,7 @@ so the structs are created in headers to be tested automatically by the subject 
 * ANCI C and POSIX compliant
 * Simple API for thread_pool, runnable and future usage
 * Well tested
-* Signal Handling on SIGINT to prevent instant interruption
+* Signal Handling on ***SIGINT*** to prevent instant interruption
 * Well Tested
 
 Some help from: https://github.com/Pithikos/C-Thread-Pool#run-an-example
@@ -22,8 +22,14 @@ Some help from: https://github.com/Pithikos/C-Thread-Pool#run-an-example
 
 `make`
 
-Then run `make test` which will test the threadpool and future libraries using macierz.c and silnia.c also.
+Then run `make test` which will test the threadpool and future libraries using macierz.c and silnia.c, too.
 Macierz and Silnia are examples how to use future, runnable and threadpool.
+
+To run a separate example e.g `main.c`:
+
+`./main`
+
+You can run with valgrind options to make sure it does not cause any memory leaks or race conditions.
 
 ### Matrix(Macierz in Polish) ###
 
