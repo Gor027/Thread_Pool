@@ -95,5 +95,44 @@ The worker threads will start their work after there is a new work on the thread
 * Completes all the calculations submitted to current running pools,
 * In the end, destroys the working threadpools. (Note that it may not end the program after handling SIGINT...)
 
+## API: Fast Overview ##
+To better understand, see the header files threadpool.h and future.h:
 
-### For fast practical overview a table showing all functions with their descriptions will be added... ###
+### ThreadPool and Runnable ###
+
+Function                                | Description
+--------------------------------------- | ---------------------------------------
+thread_pool_init(&pool, N)              | With N threads, initializes the threadpool passed by pointer `pool`.
+thread_pool_destroy(&pool)              | Destroys the threadpool passed by pointer `pool`. If there are current jobs, waits until they will be finished.
+defer(&pool, runnable)                  | Submits new `runnable` to the threadpool `pool`.
+
+### Future(CompleteableFuture) ###
+
+Function                                                                           | Description
+---------------------------------------------------------------------------------- | ---------------------------------------
+async(&pool, &future, callable)                                                    | Submits `callable` to `pool`. The result will be set `in future`.
+map(&pool, &new_future, &future_from, (void *)function_p                           | Maps new future `new_future` from an exisiting future `future_from` using function `(void *)function_p`.
+await(&future)                                                                     | Waits until the result of the `future` will be ready to access.
+
+Note: It is assumed that on a single future user can call `map` only once, so calling `map` function on the same future multiple times is assumed to be undefined behaviour. For `async` function, the same assumption is valid too. The result placed into the future is malloced by the user and after `await` or `map` the result will not be freed, as it may be used later by the user. 
+
+### Runnable & Callable ###
+
+```
+typedef struct runnable {
+  void (*function)(void *, size_t);
+  void *arg;
+  size_t argsz;
+} runnable_t;
+```
+Above is the runnable structure, where the `arg` and `argsz` are the arguments of the function `void(*function)(void *. size_t)`. Note that function of `runnable` is a void function so it does not return anything.
+
+```
+typedef struct callable {
+  void *(*function)(void *, size_t, size_t *);
+  void *arg;
+  size_t argsz;
+} callable_t;
+```
+
+The callable structure is similar to the runnable structure, however there are some noteworthy differences. The function of callable has return type `void *`, also, it has additional argument `size_t *` which indicates the size of the result returned by the callable function. It may be useful feature for the user when the returned value is an array or struct type.
