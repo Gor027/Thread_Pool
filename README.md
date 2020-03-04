@@ -8,7 +8,6 @@ so the structs are created in headers to be tested automatically by the subject 
 
 * ANCI C and POSIX compliant
 * Simple API for thread_pool, runnable and future usage
-* Well tested
 * Signal Handling on ***SIGINT*** to prevent instant interruption
 * Well Tested
 
